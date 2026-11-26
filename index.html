@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fbf8e8">
+<title>PetCity 演示</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='%23567f47'/%3E%3Cg fill='%23fff'%3E%3Cellipse cx='12' cy='15.5' rx='4.5' ry='3.6'/%3E%3Cellipse cx='6.5' cy='10.5' rx='1.8' ry='2.4'/%3E%3Cellipse cx='10' cy='6.5' rx='1.8' ry='2.4'/%3E%3Cellipse cx='14' cy='6.5' rx='1.8' ry='2.4'/%3E%3Cellipse cx='17.5' cy='10.5' rx='1.8' ry='2.4'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-mode="map" data-tab="map">
+<div id="app">
+  <header id="topnav" class="topnav"></header>
+  <main id="stage" class="stage">
+    <section id="mapPane" class="mappane" aria-label="示意地图（示例数据）">
+      <div id="viewport" class="viewport"></div>
+      <div id="mapOverlay" class="map-overlay"></div>
+      <div id="mapctl" class="mapctl">
+        <button data-z="in" aria-label="放大">＋</button>
+        <button data-z="out" aria-label="缩小">－</button>
+        <button data-z="loc" aria-label="定位（示例）"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+      </div>
+      <div class="map-note">香港示意地图（简化）· 地点与规则均为示例</div>
+    </section>
+    <aside id="panel" class="panel">
+      <div id="handle" class="sheet-handle" role="button" tabindex="0" aria-label="拖动或点击调整面板高度"><i></i></div>
+      <div id="panelScroll" class="panel-scroll"></div>
+      <div id="panelActions" class="panel-actions"></div>
+    </aside>
+    <section id="page" class="page"><div id="pageIn" class="page-in"></div></section>
+    <div id="fabLayer" class="fab-layer"></div>
+  </main>
+  <nav id="tabbar" class="tabbar" aria-label="底部导航"></nav>
+  <div id="toastWrap" class="toast-wrap" aria-live="polite"></div>
+</div>
+<noscript>PetCity 演示需要启用 JavaScript。</noscript>
+<script src="js/icons.js"></script>
+<script src="js/data.js"></script>
+<script src="js/hkmap.js"></script>
+<script src="js/core.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/map.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/views-map.js"></script>
+<script src="js/views-trip.js"></script>
+<script src="js/views-social.js"></script>
+<script src="js/views-mall.js"></script>
+<script>PC.boot();</script>
+</body>
+</html>
