@@ -162,6 +162,8 @@
   PC.pet = () => S.pets.find(p => p.id === S.petId) || S.pets[0];
   // 「小型犬」「小型猫」：按种类显示，不再一律写「犬」
   PC.sizeLabel = p => p ? p.size + (p.species === '狗狗' ? '犬' : p.species === '猫猫' ? '猫' : '宠物') : '';
+  // 体型限制文案：猫显示「小型猫」，不写「小型犬」
+  PC.sizeLimit = (max, pet) => '限' + (max === 1 ? '小型' + (pet && pet.species === '猫猫' ? '猫' : pet && pet.species !== '狗狗' ? '宠物' : '犬') : '中型以下');
   PC.ui = { snap: null, bubble: false, bubbleRoute: null, filter: '全部', query: '' };
 
   /* ---------- 计算 ---------- */
@@ -198,7 +200,7 @@
     stops.forEach((s, i) => {
       const p = PC.poi(s.pid), a = pl.arr[i], l = pl.leave[i];
       // kind：size 体型 / carry 需抱着 / time 营业或预约时间（AI 排路线用它判断要不要调出发时间）
-      if (p.maxSize < rank) out.push({ i, kind: 'size', level: 'warn', text: '限' + (p.maxSize === 1 ? '小型犬' : '中型以下') + '，' + (pet ? pet.name + '是' + PC.sizeLabel(pet) : '宠物体型不符') + '，可能进不去' });
+      if (p.maxSize < rank) out.push({ i, kind: 'size', level: 'warn', text: PC.sizeLimit(p.maxSize, pet) + '，' + (pet ? pet.name + '是' + PC.sizeLabel(pet) : '宠物体型不符') + '，可能进不去' });
       else if (p.carry && rank > 1) out.push({ i, kind: 'carry', level: 'warn', text: '需抱着入座，' + PC.sizeLabel(pet) + '不太方便' });   // 已提示体型不符的站不再重复提示
       else if (p.carry) out.push({ i, kind: 'carry', level: 'note', text: '需抱着 / 使用外出包' });
       if (p.reserve) {

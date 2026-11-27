@@ -52,6 +52,7 @@ input,textarea,select{font:inherit;color:inherit}
 .mk.n.rej .mk-in{background:#fbf8e8;color:var(--muted);border:2px dashed var(--muted)}
 .mk.n.cand .mk-in{background:#fbf8e8;color:var(--text);border:2px dashed var(--text)}
 .mk.n.cand.sel .mk-in{background:var(--orange);border-style:solid}
+.mk.user{pointer-events:none}
 .mk.user .mk-in{width:18px;height:18px;border-radius:50%;background:#2f7bff;border:3px solid #fff;box-shadow:0 0 0 9px rgba(47,123,255,.25)}
 .mk.lbl .mk-in{background:#fbf8e8;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.2);transform:scale(calc(1/var(--z,1))) translate(-50%,26px)}
 .mk.area .mk-in{font-size:13px;letter-spacing:.2em;color:#8b8870;font-weight:700;white-space:nowrap}
@@ -187,6 +188,7 @@ textarea.field{height:auto;padding:12px 14px;resize:none;line-height:1.5}
 /* ---- 悬浮购物入口 ---- */
 .fab{position:absolute;pointer-events:auto;transition:top .25s ease,transform .3s ease,opacity .3s}
 .fab.no-anim{transition:none}
+.fab.fab-off{opacity:0;pointer-events:none;transform:scale(.6)}
 .fab-btn{width:54px;height:54px;border-radius:50%;background:var(--prim);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(70,60,30,.35);position:relative;touch-action:none;cursor:grab}
 .fab.dragging .fab-btn{cursor:grabbing;transform:scale(1.08)}
 .fab .badge{border-color:var(--page)}
@@ -502,3 +504,8 @@ select.chip{cursor:pointer}
 .ov-h{overflow:hidden!important}
 .underline{text-decoration:underline!important}
 #viewport:focus-visible{outline:3px solid var(--prim);outline-offset:-3px}
+/* 语言切换：简 / 繁 / EN */
+.langsw{display:inline-flex;gap:4px;flex:none}
+.langsw .chip{min-width:34px;padding:0 9px;justify-content:center}
+/* English: Latin font first so ’ “ ” are not drawn as full-width CJK glyphs */
+html.lang-en{--font:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang HK","Noto Sans CJK TC","Noto Sans SC",sans-serif}

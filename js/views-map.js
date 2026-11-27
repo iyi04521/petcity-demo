@@ -107,18 +107,27 @@
 
   /* ---------- P1 / P1a 地图首页 ---------- */
   const FILTERS = ['全部', '户外', '餐饮', '可入店', '医疗美容', '更多'];
+  // 搜索：繁体输入先转回简体；英文模式下也按英文名 / 类型匹配（不分大小写，例如 park、café、Wan Chai）
+  const hit = (q, ...fields) => fields.some(t => t.indexOf(q) >= 0 || (PC.lang() === 'en' && PC.toEn(t).toLowerCase().indexOf(q.toLowerCase()) >= 0));
   function matchPoi(p) {
     const f = PC.ui.filter, q = PC.toHans((PC.ui.query || '').trim());   // 繁体输入也能搜到
     if (f !== '全部' && p.tags.indexOf(f) < 0 && p.type !== f) return false;
-    if (q && p.name.indexOf(q) < 0 && p.type.indexOf(q) < 0) return false;
+    if (q && !hit(q, p.name, p.type, p.district)) return false;
     return true;
   }
+  // 首页地图范围：市区 4 个区，加上当前宠物「常去哪个区」里其他有示例点位的区（例如沙田），避免默认缩得太小
+  const CORE = ['西九龙', '油尖旺', '中西区', '湾仔'];
+  PC.homeBounds = () => {
+    const extra = ((PC.pet() || {}).areas || []).filter(d => CORE.indexOf(d) < 0 && Object.values(PC.POIS).some(p => p.district === d));
+    const use = CORE.concat(extra);
+    return PC.poiBounds(p => use.indexOf(p.district) >= 0);
+  };
   V.poiRow = p => '<button class="poirow" data-act="pickPlace" data-id="' + p.id + '"><span class="catdot cat-' + PC.catOf(p)[0] + '">' + PC.catIcon(p, 17) + '</span><span class="grow"><b class="fs-14">' + esc(p.name) + '</b><span class="d-block fs-11-5 sub">' + p.type + ' · ' + p.hoursTxt + ' · 距你 ' + PC.fmtDist(V.userDist(p)) + '</span></span>' + ic('right', 16, 1.8) + '</button>';
   function searchDropdown() {
     const q = PC.toHans((PC.ui.query || '').trim());
     if (!q) return '';
-    const places = Object.values(PC.POIS).filter(p => p.name.indexOf(q) >= 0 || p.type.indexOf(q) >= 0).slice(0, 5);
-    const routes = Object.values(PC.ROUTES).concat(S.myRoutes).filter(r => r.name.indexOf(q) >= 0).slice(0, 3);
+    const places = Object.values(PC.POIS).filter(p => hit(q, p.name, p.type, p.district)).slice(0, 5);
+    const routes = Object.values(PC.ROUTES).concat(S.myRoutes).filter(r => hit(q, r.name)).slice(0, 3);
     let h = '<div class="mt-2 ov-a card" style="padding:6px 10px;max-height:260px">';
     routes.forEach(r => { h += '<button class="poirow" data-act="go" data-to="/route/' + r.id + '"><span class="tag official">路线</span><b class="fs-14 grow">' + esc(r.name) + '</b></button>'; });
     places.forEach(p => { h += '<button class="poirow" data-act="pickPlace" data-id="' + p.id + '"><span class="tag dark">地点</span><b class="fs-14 grow">' + esc(p.name) + '</b></button>'; });
@@ -148,7 +157,7 @@
     }
     return {
       mode: 'map', nav: 'map', tab: 'map', title: '地图', fab: 'p1', snap: 'peek', peek: 300, insetTop: hasBanner ? 190 : 126, ctlTop: hasBanner ? 200 : 140, fabTop: hasBanner ? 190 : 130, deskTop: hasBanner ? 160 : 130,
-      overlay, panel, actions, map: { markers: mk, fit: sel ? [PC.POIS[sel].x - 80, PC.POIS[sel].y - 80, PC.POIS[sel].x + 80, PC.POIS[sel].y + 80] : PC.poiBounds().map((n, i) => n + (i < 2 ? -110 : 110)), fitKey: (PC.isDesktop() ? 'd' : 'm') + (sel ? 'sel' + sel : 'home' + (hasBanner ? 'b' : '')) },
+      overlay, panel, actions, map: { markers: mk, fit: sel ? [PC.POIS[sel].x - 80, PC.POIS[sel].y - 80, PC.POIS[sel].x + 80, PC.POIS[sel].y + 80] : PC.homeBounds().map((n, i) => n + (i < 2 ? -110 : 110)), fitKey: (PC.isDesktop() ? 'd' : 'm') + (sel ? 'sel' + sel : 'home' + (hasBanner ? 'b' : '')) },
     };
   }
   // 搜索框在局部更新里会保留（不再被重建），所以不用再手动把焦点和光标放回去
@@ -162,7 +171,7 @@
     return '<div class="ai-s row between"><div><div class="fs-20 h2" id="main-h">' + esc(p.name) + '</div><div class="sub mt4">' + p.type + ' · ' + p.hoursTxt + ' · 距你 ' + PC.fmtDist(V.userDist(p)) + '</div></div><button class="bg-soft no-shadow circ-btn" data-act="back" data-to="/map" aria-label="关闭">' + ic('x', 16, 2.2) + '</button></div>' +
       '<div class="row gap6 wrap mt12">' + p.rules.map(V.ruleChip).join('') + '</div>' +
       '<div class="d-flex gap-6 ai-c sub mt8">' + ic('star', 14, 2) + '被 ' + n + ' 条路线收录 · <span class="sample">示例 · 待核实</span></div>' +
-      (p.maxSize < PC.SIZE_RANK[pet.size] ? '<div class="callout alert mt12">' + ic('alert', 15, 2.2) + '<span>示例规则：限' + (p.maxSize === 1 ? '小型犬' : '中型以下') + '，' + esc(pet.name) + '是' + PC.sizeLabel(pet) + '，可能进不去。</span></div>' : '') +
+      (p.maxSize < PC.SIZE_RANK[pet.size] ? '<div class="callout alert mt12">' + ic('alert', 15, 2.2) + '<span>示例规则：' + PC.sizeLimit(p.maxSize, pet) + '，' + esc(pet.name) + '是' + PC.sizeLabel(pet) + '，可能进不去。</span></div>' : '') +
       '<div class="row gap10 mt16"><button class="btn sec flex1" data-act="go" data-to="/place/' + p.id + '">看详情</button><button class="btn prim flex1" data-act="addToRoute" data-id="' + p.id + '">' + ic('plus', 16, 2.6) + '加入路线</button></div>';
   }
 
@@ -176,7 +185,7 @@
     const list = revs.filter(r => !small || /小型/.test(r.pet) || r.u === '我');
     const fbs = S.feedback.filter(f => f.pid === id);
     const panel = '<div class="ai-s row between"><div><h1 class="fs-22 h1" id="main-h">' + esc(p.name) + '</h1><div class="sub mt4">' + p.type + ' · ' + p.hoursTxt + ' · 距你 ' + PC.fmtDist(V.userDist(p)) + '</div></div><span class="tag ghost">示例 · 待核实</span></div>' +
-      (p.maxSize < PC.SIZE_RANK[pet.size] ? '<div class="callout alert mt12">' + ic('alert', 15, 2.2) + '<span>示例规则：限' + (p.maxSize === 1 ? '小型犬' : '中型以下') + '，' + esc(pet.name) + '是' + PC.sizeLabel(pet) + '，可能进不去。</span></div>' : '') +
+      (p.maxSize < PC.SIZE_RANK[pet.size] ? '<div class="callout alert mt12">' + ic('alert', 15, 2.2) + '<span>示例规则：' + PC.sizeLimit(p.maxSize, pet) + '，' + esc(pet.name) + '是' + PC.sizeLabel(pet) + '，可能进不去。</span></div>' : '') +
       '<div class="bg-sage no-shadow card mt12"><div class="d-flex gap-6 ai-c mb-8 b">' + ic('star', 15, 2) + '被 ' + rs.length + ' 条路线收录</div>' +
       (rs.length ? rs.map(r => '<button class="w-full ta-l mt-6 bg-cream card flat click" style="padding:9px 12px" data-act="go" data-to="/route/' + r.id + '"><div class="row between"><div><b class="fs-13-5">' + esc(r.name) + '</b><div class="fs-11-5 sub">' + PC.routeStats(r).km + ' · 约 ' + PC.routeStats(r).dur + ' · ' + r.stops.length + ' 站</div></div>' + (r.official ? '<span class="tag official">官方优选</span>' : '<span class="tag ghost">我的路线</span>') + '</div></button>').join('') : '<div class="sub">暂无路线收录</div>') + '</div>' +
       '<div class="sec-h">入场规则 <span class="sample">示例，非核验结果</span></div>' + p.rules.map(r => '<div class="rule"><span class="ico ' + (r[2] === 'ok' ? '' : 'warn') + '">' + ic(r[2] === 'ok' ? 'check' : 'alert', 13, 2.8) + '</span><b>' + r[0] + '</b><span>' + esc(r[1]) + '</span></div>').join('') +
@@ -281,9 +290,9 @@
      2. 按所选活动各挑一个点：优先本区、离上一站近、上午就开门的；本区没有就找同侧 1.2 km 内的；都没有就记下来提示用户
      3. 不足两站补户外 / 餐饮点（再不够才补店铺），按就近顺序排好；超出时长预算去掉末站，太短再补站（最多 5 站）
      4. 按营业时间 / 预约时段找最早可行的出发时间（10:00 起，每 15 分钟试一次）；实在排不开就去掉冲突的站 */
-  const WANT = { '散步': p => p.type === '户外', '喝咖啡': p => p.type === '餐饮', '买用品': p => p.type === '店铺', '洗护': p => p.type === '医疗美容', '交朋友': p => ['p6', 'p8', 'p14', 'p16'].indexOf(p.id) >= 0 };
+  const WANT = { '散步': p => p.type === '户外', '喝咖啡': p => p.type === '餐饮', '买用品': p => p.type === '店铺', '洗护': p => p.type === '医疗美容', '交朋友': p => ['p6', 'p8', 'p14', 'p16', 'p23', 'p24', 'p30', 'p31', 'p57', 'p63', 'p70', 'p77', 'p78', 'p79'].indexOf(p.id) >= 0 };
   const BUDGET = { '1 小时': 60, '2 小时': 120, '半天': 240 };
-  const ISLAND = ['中西区', '湾仔', '东区'];
+  const ISLAND = ['中西区', '湾仔', '东区', '南区'];
   const side = d => ISLAND.indexOf(d) >= 0 ? '港岛' : '九龙';
   // 没有示例点位的区：用同一侧（九龙 / 港岛）的示例区代替
   PC.planDistrict = d => PC.DEMO_DISTRICTS.indexOf(d) >= 0 ? d : (side(d) === '港岛' ? '湾仔' : '油尖旺');
@@ -300,23 +309,48 @@
     const same = all.filter(p => p.district !== district && side(p.district) === side(district)).sort((a, b) => PC.dist(center, a) - PC.dist(center, b));
     let pool = all.filter(p => p.district === district);
     if (pool.length < 3) pool = pool.concat(same.slice(0, 3 - pool.length));
-    return { district, pool, near: same.filter(p => pool.indexOf(p) < 0 && PC.dist(center, p) <= NEAR_R), center };
+    // 起点参考：区内点位最密集处（1 km 内邻居最多的点），而不是平均中心；区内点位分散在两头时，平均中心可能落在两边都不近的地方
+    const own = Object.values(PC.POIS).filter(p => p.district === district), nb = p => own.filter(q => PC.dist(p, q) <= 1000).length;
+    const hub = own.slice().sort((a, b) => nb(b) - nb(a) || PC.dist(center, a) - PC.dist(center, b))[0] || center;
+    return { district, pool, near: same.filter(p => pool.indexOf(p) < 0 && PC.dist(center, p) <= NEAR_R), center: { x: hub.x, y: hub.y } };
   }
-  function pickByActivity(A, acts, info) {
-    const chosen = [];
-    acts.forEach(act => {
-      const ok = q => WANT[act](q) && chosen.indexOf(q) < 0, ref = chosen[chosen.length - 1] || A.center;   // 第一站：离所选区域中心最近
-      let p = nearestTo(ref, A.pool.filter(ok));
+  function pickByActivity(A, acts, info, first) {
+    const chosen = [], n = act => A.pool.concat(A.near).filter(WANT[act]).length;
+    acts.slice().sort((a, b) => n(a) - n(b)).forEach((act, i) => {   // 候选最少的活动先排（如「交朋友」），其余就近找，避免两站相隔太远
+      const ok = q => WANT[act](q) && chosen.indexOf(q) < 0, ref = chosen[chosen.length - 1] || A.center;
+      let p = i === 0 && first ? first : nearestTo(ref, A.pool.filter(ok));
       if (!p && A.near.length) { p = nearestTo(ref, A.near.filter(ok)); if (p) info.borrowed.push([act, p]); }
       if (p) chosen.push(p); else info.unmet.push(act);
     });
     return chosen;
   }
+  // 第一站轮流试「最难找」那项活动的每个候选点，取满足活动最多、总时长最短（同样短时离区中心近）的一组
+  function bestByActivity(A, acts, info) {
+    const n = act => A.pool.concat(A.near).filter(WANT[act]).length, top = acts.slice().sort((a, b) => n(a) - n(b))[0];
+    const firsts = A.pool.filter(WANT[top]), tries = (firsts.length ? firsts : [null]).map(f => {
+      const inf = { borrowed: [], unmet: [], dropped: [] }, ch = pickByActivity(A, acts, inf, f);
+      const score = inf.unmet.length * 1e5 + (ch.length ? PC.plan(PC.nearestOrder(ch).map(toStop)).total : 0) + (f && A.center ? PC.dist(A.center, f) / 200 : 0);
+      return { ch, inf, score };
+    }).sort((a, b) => a.score - b.score)[0];
+    Object.assign(info, tries.inf);
+    return tries.ch;
+  }
   // 补站：先找户外 / 餐饮，再找店铺；默认要在末站 1.2 km 内（凑够 2 站时放宽到 2 km，候选池已限定同一侧，不会跨海）
   function nextFiller(A, chosen, r) {
-    const ref = chosen[chosen.length - 1] || A.center, list = A.pool.concat(A.near).filter(q => chosen.indexOf(q) < 0 && (!ref || PC.dist(ref, q) < (r || NEAR_R)));
+    const ref = chosen[chosen.length - 1] || A.center, list = A.pool.concat(A.near).filter(q => chosen.indexOf(q) < 0 && (!ref || !chosen.length || PC.dist(ref, q) < (r || NEAR_R)));   // 还没有任何站时不限距离（区内点位分散时，区域中心附近可能一个点都没有）
     const best = l => l.slice().sort((x, y) => cost(ref, x) + (x.district !== A.district ? 600 : 0) - cost(ref, y) - (y.district !== A.district ? 600 : 0))[0];   // 同区优先
     return best(list.filter(q => q.type === '户外' || q.type === '餐饮')) || best(list.filter(q => q.type === '店铺')) || null;
+  }
+  // 凑够 2 站：在 2 km 内（没有就不限距离，仍在同一侧）的户外 / 餐饮（其次店铺）里，优先选两站加起来不超时的最近一个
+  function fillToTwo(A, chosen, budget) {
+    const ref = chosen[chosen.length - 1] || A.center, free = A.pool.concat(A.near).filter(q => chosen.indexOf(q) < 0);
+    const typed = l => l.filter(q => q.type === '户外' || q.type === '餐饮' || q.type === '店铺');
+    let list = typed(free.filter(q => !ref || !chosen.length || PC.dist(ref, q) < 2000));
+    if (!list.length) list = free;
+    const tot = q => PC.plan(PC.nearestOrder(chosen.concat(q)).map(toStop)).total;
+    const best = l => { if (!l.length) return null; const fit = l.filter(q => tot(q) <= budget * 1.2), pool = fit.length ? fit : l;
+      return pool.slice().sort((x, y) => (fit.length ? cost(ref, x) - cost(ref, y) : tot(x) - tot(y)) + (x.district !== A.district ? 600 : 0) - (y.district !== A.district ? 600 : 0))[0]; };
+    return best(list.filter(q => q.type === '户外' || q.type === '餐饮')) || best(list.filter(q => q.type === '店铺'));
   }
   const timeWarns = (stops, st) => PC.issues(stops, st, null).filter(x => x.kind === 'time' && x.level === 'warn');
   function fitStart(stops) {
@@ -329,8 +363,8 @@
     const dist = PC.planDistrict(a.district), stand = dist !== a.district;
     const A = areaOf(rank, dist), info = { borrowed: [], unmet: [], dropped: [] };
     const budget = BUDGET[a.dur] || 120;
-    const chosen = pickByActivity(A, a.acts.length ? a.acts : ['散步', '喝咖啡'], info);
-    while (chosen.length < 2) { const p = nextFiller(A, chosen, 2000); if (!p) break; chosen.push(p); }
+    const chosen = bestByActivity(A, a.acts.length ? a.acts : ['散步', '喝咖啡'], info);
+    while (chosen.length < 2) { const p = fillToTwo(A, chosen, budget); if (!p) break; chosen.push(p); }
     let stops = PC.nearestOrder(chosen).map(toStop);
     while (PC.plan(stops).total > budget * 1.2 && stops.length > 2) stops.pop();
     while (PC.plan(stops).total < budget * 0.75 && stops.length < 5) {

@@ -12,7 +12,10 @@
     const M = PC.HKMAP, X = -B, Y = -B, BW = WD.w + 2 * B, BH = WD.h + 2 * B;
     let s = '<svg id="base" style="position:absolute;left:' + X + 'px;top:' + Y + 'px" width="' + BW + '" height="' + BH + '" viewBox="' + X + ' ' + Y + ' ' + BW + ' ' + BH + '" aria-hidden="true">';
     s += '<rect x="' + X + '" y="' + Y + '" width="' + BW + '" height="' + BH + '" fill="#aed5e7"/>';
-    s += '<g fill="#f2f1ea" stroke="#fff" stroke-width="5" stroke-linejoin="round">' + [M.KOWLOON, M.ISLAND, M.AP_LEI_CHAU, M.GREEN_ISLAND].map(a => '<path d="' + poly(a) + '"/>').join('') + '</g>';
+    s += '<g fill="#f2f1ea" stroke="#fff" stroke-width="5" stroke-linejoin="round">' + [M.KOWLOON, M.ISLAND, M.AP_LEI_CHAU, M.GREEN_ISLAND, M.TSING_YI].map(a => '<path d="' + poly(a) + '"/>').join('') + '</g>';
+    // 陆地上的水面：沙田海、城门河
+    s += '<path d="' + poly(M.SHA_TIN_HOI) + '" fill="#aed5e7" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>';
+    s += '<g fill="none" stroke="#aed5e7" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">' + M.RIVERS.map(a => '<path d="' + line(a) + '"/>').join('') + '</g>';
     s += '<g fill="#c5e1b8" stroke="#a9cf9b" stroke-width="2" stroke-linejoin="round">' + M.GREEN.map(a => '<path d="' + poly(a) + '"/>').join('') + '</g>';
     s += '<g fill="none" stroke-linecap="round" stroke-linejoin="round">';
     s += '<g stroke="#fff" stroke-width="6">' + M.ROADS.map(a => '<path d="' + line(a) + '"/>').join('') + '</g>';
@@ -76,7 +79,8 @@
   function dodge() {
     if (!geoLbls) geoLbls = [...world.querySelectorAll('.gl')].map((el, i) => {
       const l = PC.HKMAP.LABELS[i], p = PC.ll(l[1], l[2]);
-      return { el, x: p.x, y: p.y, hw: l[0].length * LW[l[3] || 'minor'] / 2 + 4 };
+      const t = el.textContent, w = [...t].reduce((n, c) => n + (/[\u3400-\u9fff]/.test(c) ? 1 : 0.55), 0);   // 英文地名按实际文字估宽
+      return { el, x: p.x, y: p.y, hw: w * LW[l[3] || 'minor'] / 2 + 4 };
     });
     lastDz = z;
     const R = 20;   // 图钉半径 + 间距（px）

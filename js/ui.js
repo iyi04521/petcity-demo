@@ -138,7 +138,12 @@
     let y = S.fab.y;
     if (y == null) y = d ? 0.8 : 0.6;
     let top = Math.round(y * LH - sz / 2);
+    const room = LH - z.bottom - sz >= z.top;   // 面板拉到全屏时上方没位置：先隐藏，不压在面板上
     top = Math.max(z.top, Math.min(LH - z.bottom - sz, top));
+    if (el.classList.contains('fab-off') === room) {   // 只在状态变化时改 DOM
+      el.classList.toggle('fab-off', !room); el.setAttribute('aria-hidden', room ? 'false' : 'true');
+      const btn = el.querySelector('.fab-btn'); if (btn) btn.tabIndex = room ? 0 : -1;
+    }
     el.classList.toggle('no-anim', !animate);
     el.style.top = top + 'px';
     el.style.left = S.fab.side === 'left' ? '10px' : 'auto';
